@@ -2,4 +2,4 @@
 We've implemented Tempo value, so it's really easy to calculate!
 Documented in OpenNoteBlockStudio website (https://hielkeminecraft.github.io/OpenNoteBlockStudio/nbs)
 "Divide this (Song length) by the tempo to get the length of the song in seconds"
-```song seconds = song length ÷ song tempo```
+```Song Seconds = %var(tick)  ÷ %var(tempo)```
