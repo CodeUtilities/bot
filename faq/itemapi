@@ -1,0 +1,51 @@
+You can send items through the CodeUtilities Item API. To connect, open a socket on port `31372`. You will send/receive data from this port.
+
+You can also use **webrequests**, which is on port `31371` with the endpoint of `codeutilities/item.`
+
+**Sending:**
+To send items, you need to send a json object to the port. There must be no newlines, as that is supposed to mark the end of your message. (So make sure to put a newline at the end)
+type, data, and source.
+
+Type -  id of the item you want, example nbt.
+Data -  a string that contains the data the item will use. Certain code items may json objects, note that they need to be strings!
+Source - This is a string that is the name of your application. This is shown in the message that appears when the player receives an item.
+
+**Item Types:**
+There are 3 current item types that you can send through the CodeUtilities Item API.
+nbt {id:"minecraft:stone",Count:1b} 
+The NBT type accepts minecraft NBT to construct an item
+template json object
+This JSON Object has the following values
+- "data" This is the encoded data for the code template. 
+- "author" Name of author, this is optional and if not provided will default to the players name ingame.
+- "name" Name of template, this is set in the NBT and as the items name. If none is provided it becomes "Imported Code Template"
+- "version" This is the version id, it is highly recommended you set this yourself. If you leave this blank it will default to the id provided in code utilities. 
+raw_template  json object
+This is the same as template but with one major difference.
+- "data" This is the raw json  data for the code template. (Not encoded)
+
+**Results:**
+CodeUtilities also sends success/error messages when an action is run. The format for these is very temporary and is rather basic.
+
+If an error occurs the following will be sent -> {"status":"error", "error":"error_desc"} (These are not user friendly messages!)
+
+If it succeeds the following is sent -> {"status":"success"} (There is no message sent)
+Receiving
+CodeUtilities allows you to also receive NBT data. This is currently only sent via the sendtemplate command. 
+As long as you are still connected to the server you will be sent the following json object.
+
+received - Contains the data received
+type - The type of data received (currently this is only template)
+
+
+**Receive Types:**
+template - This contains the raw hypercube:codetemplatedata from an item.
+
+**Example:**
+```
+{"type":"template","source":"DFVisual","data":"{\"name\":\"DFVisual Template\",\"data\":\"H4sIAAAAAAAAAKtWSsrJT84uVrKKroYwlayUUvNKMksq4xOTSzLz85R0lDJTgIIQSR2lxKJ0oOpqpcyS1FyQtthaoBhEpZWSUm1sLQCIvxHHUwAAAA==\"}"}
+```
+-> 
+```
+{"success":""}
+```
