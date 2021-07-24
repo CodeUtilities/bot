@@ -281,7 +281,7 @@ async def on_message(ctx):
     member = ctx.author
     embed = discord.Embed(color=0x21ea83)
     embed.add_field(name="📨 New module posted", value=f"{ctx.content}\n{ctx.jump_url}")
-    embed.set_author(name=f"{member.name}#{member.discriminator}", icon_url=f"{member.avatar_url}")
+    embed.set_author(name=f"{member.name}#{member.discriminator} <{member.id}>", icon_url=f"{member.avatar_url}")
     attachments = ""
     for attachment in ctx.attachments:
       attachments += f"**{attachment.filename}** {attachment.url}"
@@ -333,7 +333,7 @@ async def on_reaction_add(reaction, user):
       attachments += f"**{attachment.filename}** {attachment.url}"
     if attachments != "":
       embed.add_field(name="📁 Files", value=attachments, inline=False)
-    embed.set_footer(text=f"🔒 This module has been confirmed to be safe by a Contributor+ ({user.name}#{user.discriminator})\n📋 Submitter: {msg.author.name}#{msg.author.discriminator} ({msg.author.id})")
+    embed.set_footer(text=f"🔒 This module has been confirmed to be safe by a Contributor+ ({user.name}#{user.discriminator} <{user.id}>)\n📋 Submitter: {msg.author.name}#{msg.author.discriminator} <{msg.author.id}>")
 
     files_channel = await client.fetch_channel(constants.module_files_channel)
     msg = await files_channel.send(embed=embed)
