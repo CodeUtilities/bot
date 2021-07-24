@@ -8,6 +8,11 @@ import json
 import urllib.request
 import datetime
 
+try:
+  import localconstants as constants
+except:
+  import constants
+
 prefix = "-"
 client = commands.Bot(command_prefix=f"{prefix}", intents=discord.Intents.all())
 
@@ -17,7 +22,6 @@ if "config_qa" in db.keys():
   config_qa = db["config_qa"]
 
 domain = "n8j5srrv39fz.runkit.sh"
-allowedChannels = [661017509444714561,822509249740537887]
 
 app = Flask('')
 @app.route('/')
@@ -76,7 +80,7 @@ async def test(ctx):
   
 @client.command(no_pm=True, name="help")
 async def help(ctx):
-  if ctx.channel.id in allowedChannels:
+  if ctx.channel.id in constants.allowed_channels:
     await permsCalc(ctx)
     embed = discord.Embed(timestamp=(datetime.datetime.now()), color=0xfff9b3)
     embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
@@ -239,8 +243,8 @@ async def on_raw_message_delete(payload):
     embed.set_author(name=f"{author} ({authorID})", icon_url=f"{url}")
     embed.set_footer(text=f"In #{channel}")
 
-    guild = client.get_guild(660239763479068713)
-    channel = guild.get_channel(747381895511146577)
+    guild = client.get_guild(constants.guild_id)
+    channel = guild.get_channel(constants.logs_channel)
     
     del db[f"{payload.message_id}msg"]
     await channel.send(embed=embed)
@@ -250,28 +254,47 @@ async def on_raw_message_delete(payload):
 async def on_message(ctx):
   db[f"{ctx.id}msg"] = [f"{ctx.author.name}", f"{ctx.author.id}", f"{ctx.content}", f"{ctx.author.avatar_url}", f"{ctx.channel}"]
   await client.process_commands(ctx)
-  if ctx.channel.id == 678590504232812544:
-    await ctx.add_reaction("<:upvote:682245287170801716>")
-    await ctx.add_reaction("<:downvote:682245297795104803>")
-    await suggestionMsg(ctx, 831063611073232926, "suggestion")
+  if ctx.channel.id == constants.suggestions_channel:
+    await ctx.add_reaction(constants.upvote)
+    await ctx.add_reaction(constants.downvote)
+    await suggestionMsg(ctx, constants.discussion_channel, "suggestion")
     return()
   
-  if ctx.channel.id == 812998310612828182:
+  if ctx.channel.id == constants.crosspost_bot_messages_channel:
     if ctx.author.bot:
       await ctx.publish()
 
     return()
 
-  if ctx.channel.id == 660493054498701313:
-    await suggestionMsg(ctx, 660239763936378883, "bug report")
+  if ctx.channel.id == constants.bug_reports_channel:
+    await suggestionMsg(ctx, constants.bug_reports_channel_logs, "bug report")
     return()
 
-  if ctx.channel.id == 675741807912419328:
-    await suggestionMsg(ctx, 675650117033787392, "beta bug report")
+  if ctx.channel.id == constants.beta_bug_reports_channel:
+    await suggestionMsg(ctx, constants.beta_bug_reports_channel_logs, "beta bug report")
     return()
 
-  guild = client.get_guild(660239763479068713)
-  ignore = guild.get_role(822760217640435733)
+  if ctx.channel.id == constants.module_submissions_channel:
+    if ctx.author.bot: return()
+    guild = client.get_guild(constants.guild_id)
+    channel = guild.get_channel(constants.module_approval_channel)
+    member = ctx.author
+    embed = discord.Embed(color=0x21ea83)
+    embed.add_field(name="📨 New module posted", value=f"{ctx.content}\n{ctx.jump_url}")
+    embed.set_author(name=f"{member.name}#{member.discriminator}", icon_url=f"{member.avatar_url}")
+    attachments = ""
+    for attachment in ctx.attachments:
+      attachments += f"**{attachment.filename}** {attachment.url}"
+    if attachments != "":
+      embed.add_field(name="📎 Attachments", value=attachments, inline=False)
+    embed.set_footer(text=f"{ctx.id}")
+    msg = await channel.send(embed=embed)
+    await msg.add_reaction("✅")
+    return()
+
+
+  guild = client.get_guild(constants.guild_id)
+  ignore = guild.get_role(constants.ignored_role)
   if ignore in ctx.author.roles:
     return()
   if config_qa == 1:
@@ -293,6 +316,27 @@ async def on_message(ctx):
       if "nbs" in msg:
         await tagReply(ctx, ctx.channel, ctx.author, "How do I use NBS Songs on DiamondFire?", f"https://{domain}?doc=Importing-Music-(NBS-Files)")
         await ctx.channel.send(f"{ctx.author.mention} please read the above info first! If you are still having issues please ask in <#661550032344055850>")
+
+@client.event
+async def on_reaction_add(reaction, user):
+  if user.bot: return()
+  if reaction.message.channel.id == constants.module_approval_channel:
+    msgId = int(reaction.message.embeds[0].footer.text)
+    channel = await client.fetch_channel(constants.module_submissions_channel)
+    msg = await channel.fetch_message(msgId)
+    
+    embed = discord.Embed(color=0x21ea83)
+    embed.add_field(name="📌 New module posted", value=f"{msg.content}")
+    embed.set_author(name=f"{msg.author.name} #{msg.author.discriminator} ({msg.author.id})", icon_url=f"{user.avatar_url}")
+    attachments = ""
+    for attachment in msg.attachments:
+      attachments += f"**{attachment.filename}** {attachment.url}"
+    if attachments != "":
+      embed.add_field(name="📁 Files", value=attachments, inline=False)
+    embed.set_footer(text=f"🔒 This module has been confirmed to be safe by a Contributor+ ({user.name}#{user.discriminator})")
+
+    files_channel = await client.fetch_channel(constants.module_files_channel)
+    msg = await files_channel.send(embed=embed)
 
 async def tagReply(ctx, channel, user, question, url):
   file = urllib.request.urlopen(url)
@@ -324,34 +368,35 @@ async def permsCalc(ctx):
   global perm
   global permInt
 
+  if ctx.author.id in constants.bot_devs:
+    permInt = 5
+    perm = "BOT DEVELOPER"
+    return()
+
+  if ctx.author.id in constants.retired_devs:
+    permInt = 4
+    perm = "RETIRED DEVELOPER"
+    return()
+
   for role in reversed(ctx.author.roles):
     role = role.id
-    if ctx.author.id in [711974603387306490, 605506592200327178]:
-      permInt = 5
-      perm = "BOT DEVELOPER"
-      return()
 
-    if ctx.author.id == 511653192942092289:
-      permInt = 4
-      perm = "RETIRED DEVELOPER"
-      return()
-
-    if role == 660627197735731212:
+    if role == constants.developer_role:
       permInt = 4
       perm = "DEVELOPER"
       return()
 
-    if role == 780033350735495168:
+    if role == constants.contributor_role:
       permInt = 3
       perm = "CONTRIBUTOR"
       return()
     
-    if role == 661568558660059177:
+    if role == constants.samman_role:
       permInt = 2
       perm = "SAMMAN"
       return()
 
-    if role == 675646859473322005:
+    if role == constants.beta_tester_role:
       permInt = 1
       perm = "BETA TESTER"
       return()
