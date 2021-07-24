@@ -22,3 +22,4 @@ downvote = "<:downvote:682245297795104803>"
 
 module_submissions_channel = 0
 module_approval_channel = 0
+module_files_channel = 844242856410480670
